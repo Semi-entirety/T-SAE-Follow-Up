@@ -1,0 +1,29 @@
+# Nested repos
+temporal-saes/
+
+# Data
+data/
+
+# Model checkpoints
+*.pt
+*.pth
+*.ckpt
+checkpoints*/
+ctr_*/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# VS Code
+.vscode/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment
+.env
+*.egg-info/
+dist/
+build/
