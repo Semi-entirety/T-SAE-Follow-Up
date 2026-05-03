@@ -8,11 +8,6 @@ echo "=============================="
 echo " T-SAE 环境配置开始"
 echo "=============================="
 
-# ── 1. 克隆仓库 ──────────────────────────────────────────────
-echo "[1/6] 克隆项目仓库..."
-git clone https://github.com/Semi-entirety/T-SAE-Follow-Up.git
-cd T-SAE-Follow-Up
-
 # ── 2. 安装 Miniconda（如果没有）────────────────────────────
 echo "[2/6] 检查 Conda..."
 if ! command -v conda &> /dev/null; then
