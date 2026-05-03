@@ -34,7 +34,7 @@ source ~/miniconda3/bin/activate t-sae
 
 # ── 4. 安装 temporal-saes ────────────────────────────────────
 echo "[4/6] 安装 temporal-saes..."
-cd temporal-saes
+cd temporal-saes-main
 pip install -e . -i https://pypi.tuna.tsinghua.edu.cn/simple
 cd ..
 
