@@ -23,7 +23,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT / "temporal-saes"))
+# sys.path.insert(0, str(ROOT / "temporal-saes" ))
 
 import torch
 from PIL import Image
@@ -31,7 +31,7 @@ from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 import torch.nn.functional as F
 
-from dictionary_learning.dictionary_learning.trainers.matryoshka_batch_top_k import (
+from dictionary_learning.trainers.matryoshka_batch_top_k import (
     MatryoshkaBatchTopKSAE,
 )
 from spatial_patch_top_k import SpatialPatchTopKTrainer
