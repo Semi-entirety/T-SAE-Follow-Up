@@ -28,3 +28,4 @@ __pycache__/
 dist/
 build/
 imagenet_data/
+imagenet_data/
