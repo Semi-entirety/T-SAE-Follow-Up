@@ -27,3 +27,4 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+imagenet_data/
