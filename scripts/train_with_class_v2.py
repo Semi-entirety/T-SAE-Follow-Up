@@ -38,7 +38,7 @@ from torchvision import transforms
 from torch.utils.data import Dataset, Sampler, DataLoader
 
 from dictionary_learning.trainers.matryoshka_batch_top_k import MatryoshkaBatchTopKSAE
-from spatial_patch_top_k_with_class import SpatialClassTopKTrainer
+from scripts.spatial_patch_top_k_with_class import SpatialClassTopKTrainer
 
 
 # ── Dataset ───────────────────────────────────────────────────

@@ -12,7 +12,7 @@ from pathlib import Path
 
 import torch
 
-from vision_patch_pairs import SpatialPatchPairBuffer
+from scripts.vision_patch_pairs import SpatialPatchPairBuffer
 
 # 按 temporal-saes 当前目录结构导入
 from dictionary_learning.dictionary_learning.trainers.temporal_sequence_top_k import (
@@ -21,7 +21,7 @@ from dictionary_learning.dictionary_learning.trainers.temporal_sequence_top_k im
 from dictionary_learning.dictionary_learning.trainers.matryoshka_batch_top_k import (
     MatryoshkaBatchTopKSAE,
 )
-from spatial_patch_top_k import SpatialPatchTopKTrainer
+from scripts.spatial_patch_top_k import SpatialPatchTopKTrainer
 
 def collect_image_paths(root: str) -> list[str]:
     exts = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}

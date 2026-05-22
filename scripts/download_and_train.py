@@ -34,8 +34,8 @@ import torch.nn.functional as F
 from dictionary_learning.trainers.matryoshka_batch_top_k import (
     MatryoshkaBatchTopKSAE,
 )
-from spatial_patch_top_k import SpatialPatchTopKTrainer
-from vision_patch_pairs import SpatialPatchPairBuffer
+from scripts.spatial_patch_top_k import SpatialPatchTopKTrainer
+from scripts.vision_patch_pairs import SpatialPatchPairBuffer
 
 
 # ── Step 1: 下载数据集 ────────────────────────────────────────

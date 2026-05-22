@@ -194,39 +194,41 @@ def collect_latent_statistics(
 
 # ── Step 2: Select latents ────────────────────────────────────
 
-def select_latents(stats, n_latents, min_count=5):
-    freq    = stats["activated_frequency"]
-    mean_a  = stats["mean_activation"]
-    entropy = stats["label_entropy"]
-    count   = stats["activation_count"]
+def select_latents(stats, n_latents, min_count=5, dict_size=16384):
+    """
+    Select representative latents from each Matryoshka group:
+      High-level: first dict_size//2 features (regularized by contrastive loss)
+      Low-level:  last dict_size//2 features (not regularized)
 
-    valid   = count >= min_count
-    indices = np.where(valid)[0]
+    Within each group, select the n_latents most active latents
+    (highest mean activation value) to visualize.
+    """
+    mean_a = stats["mean_activation"]
+    count  = stats["activation_count"]
 
-    log_freq = np.log10(freq[indices] + 1e-10)
-    log_mean = np.log10(mean_a[indices] + 1e-10)
-    ent_v    = entropy[indices]
+    hl_split = dict_size // 2
 
-    def norm(x):
-        return (x - x.min()) / (x.max() - x.min() + 1e-10)
+    # High-level group: feature indices 0 ~ hl_split-1
+    hl_valid = (count[:hl_split] >= min_count)
+    hl_indices = np.where(hl_valid)[0]  # global indices
+    # Pick top n_latents by mean activation
+    hl_mean = mean_a[:hl_split][hl_valid]
+    hl_top  = hl_indices[np.argsort(hl_mean)[-n_latents:]][::-1]
 
-    nf = norm(log_freq)
-    nm = norm(log_mean)
-    ne = norm(ent_v)
+    # Low-level group: feature indices hl_split ~ dict_size-1
+    ll_valid = (count[hl_split:] >= min_count)
+    ll_indices = np.where(ll_valid)[0] + hl_split  # global indices
+    ll_mean = mean_a[hl_split:][ll_valid]
+    ll_top  = ll_indices[np.argsort(ll_mean)[-n_latents:]][::-1]
 
-    # Class-specific: top-left + low entropy
-    # = high mean + low freq + low entropy
-    cs_score = nm - nf - ne
-    cs_idx = indices[np.argsort(cs_score)[-n_latents:]][::-1]
-
-    # Shared: bottom-right + high entropy
-    # = high freq + low mean + high entropy
-    sh_score = nf - nm + ne
-    sh_idx = indices[np.argsort(sh_score)[-n_latents:]][::-1]
+    print(f"[Split] High-level group (Matryoshka): "
+          f"{hl_valid.sum()} active latents, showing top {n_latents}")
+    print(f"[Split] Low-level group  (Matryoshka): "
+          f"{ll_valid.sum()} active latents, showing top {n_latents}")
 
     return {
-        "class_specific": cs_idx.tolist(),
-        "shared":         sh_idx.tolist(),
+        "class_specific": hl_top.tolist(),   # renamed for compatibility
+        "shared":         ll_top.tolist(),
     }
 
 
@@ -362,9 +364,9 @@ def plot_big_grid(
         )
 
     mode_title = {
-        "class_specific": "Class-Specific Concepts (top-left, low entropy)\n"
+        "class_specific": "High-level Concepts (Matryoshka Group 0+1, regularized by contrastive loss)\n"
                           "Each row = one concept | All images from its strongest class",
-        "shared":         "Shared Concepts (bottom-right, high entropy)\n"
+        "shared":         "Low-level Concepts (Matryoshka Group 2+3, not regularized)\n"
                           "Each row = one concept | Images from many different classes",
     }
     plt.suptitle(mode_title[mode], fontsize=12, y=1.01)
@@ -379,29 +381,81 @@ def plot_big_grid(
 
 # ── Scatter plot ──────────────────────────────────────────────
 
-def plot_scatter(stats, outdir, min_count=5):
+def plot_scatter(stats, outdir, min_count=5, dict_size=16384):
+    """
+    Produces two scatter plots side by side:
+      Left:  color = label entropy
+             Red = class-specific (low entropy)
+             Blue = shared across classes (high entropy)
+
+      Right: color = Matryoshka high-level vs low-level split
+             Orange = high-level group (first dict_size//2 features,
+                      regularized by contrastive loss)
+             Purple = low-level group (last dict_size//2 features,
+                      not regularized)
+    """
     freq    = stats["activated_frequency"]
     mean_a  = stats["mean_activation"]
     entropy = stats["label_entropy"]
     count   = stats["activation_count"]
 
-    valid    = count >= min_count
-    log_freq = np.log10(freq[valid] + 1e-10)
-    log_mean = np.log10(mean_a[valid] + 1e-10)
-    ent_v    = entropy[valid]
+    valid   = count >= min_count
+    indices = np.where(valid)[0]
 
-    fig, ax = plt.subplots(figsize=(8, 6))
-    sc = ax.scatter(log_freq, log_mean, c=ent_v, cmap="coolwarm_r",
-                    alpha=0.5, s=3, linewidths=0)
+    log_freq = np.log10(freq[indices] + 1e-10)
+    log_mean = np.log10(mean_a[indices] + 1e-10)
+    ent_v    = entropy[indices]
+
+    # Matryoshka split: first half = high-level (regularized)
+    hl_split       = dict_size // 2
+    is_highlevel   = indices < hl_split   # regularized by contrastive loss
+    is_lowlevel    = ~is_highlevel
+
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+    # ── Left plot: label entropy coloring ────────────────────
+    ax = axes[0]
+    sc = ax.scatter(
+        log_freq, log_mean,
+        c=ent_v, cmap="coolwarm_r",
+        alpha=0.5, s=3, linewidths=0,
+    )
     plt.colorbar(sc, ax=ax, label="Label Entropy")
-    ax.set_xlabel("Log₁₀ Activated Frequency", fontsize=12)
-    ax.set_ylabel("Log₁₀ Mean Activation Value", fontsize=12)
+    ax.set_xlabel("Log₁₀ Activated Frequency", fontsize=11)
+    ax.set_ylabel("Log₁₀ Mean Activation Value", fontsize=11)
     ax.set_title(
-        "SAE Latent Statistics\n"
+        "Label Entropy\n"
         "Red = class-specific (low entropy) | Blue = shared (high entropy)",
-        fontsize=11,
+        fontsize=10,
     )
     ax.grid(True, alpha=0.3)
+
+    # ── Right plot: Matryoshka high vs low level ──────────────
+    ax = axes[1]
+    ax.scatter(
+        log_freq[is_highlevel], log_mean[is_highlevel],
+        color="#F97316", alpha=0.5, s=4, linewidths=0,
+        label=f"High-level group (features 0~{hl_split-1}, regularized, n={is_highlevel.sum()})",
+    )
+    ax.scatter(
+        log_freq[is_lowlevel], log_mean[is_lowlevel],
+        color="#7C3AED", alpha=0.5, s=4, linewidths=0,
+        label=f"Low-level group (features {hl_split}~{dict_size-1}, not regularized, n={is_lowlevel.sum()})",
+    )
+    ax.set_xlabel("Log₁₀ Activated Frequency", fontsize=11)
+    ax.set_ylabel("Log₁₀ Mean Activation Value", fontsize=11)
+    ax.set_title(
+        "Matryoshka High-level vs Low-level Split\n"
+        "Orange = regularized by contrastive loss | Purple = not regularized",
+        fontsize=10,
+    )
+    ax.legend(fontsize=7, loc="upper right")
+    ax.grid(True, alpha=0.3)
+
+    plt.suptitle(
+        "SAE Latent Statistics Scatter Plot",
+        fontsize=13, y=1.01,
+    )
     plt.tight_layout()
     path = outdir / "latent_statistics_scatter.png"
     fig.savefig(path, dpi=180, bbox_inches="tight")
@@ -463,10 +517,10 @@ def main():
     print(f"\n[Summary] Active latents: {active} / {args.dict_size}")
 
     # Scatter plot
-    plot_scatter(stats, outdir)
+    plot_scatter(stats, outdir, dict_size=args.dict_size)
 
     # Select latents
-    selected = select_latents(stats, n_latents=args.n_latents)
+    selected = select_latents(stats, n_latents=args.n_latents, dict_size=args.dict_size)
 
     print(f"\n[Select] class_specific latents: {selected['class_specific']}")
     for li in selected['class_specific']:

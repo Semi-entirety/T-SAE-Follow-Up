@@ -36,6 +36,8 @@ import random
 import sys
 from io import BytesIO
 from pathlib import Path
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT / "temporal-saes" / "dictionary_learning"))
@@ -174,31 +176,32 @@ def encode_dataset(
 
 # ── Step 2: Linear probe ──────────────────────────────────────
 
-def train_linear_probe(
-    X: np.ndarray,
-    y: np.ndarray,
-) -> tuple[LogisticRegression, StandardScaler, float]:
-    """
-    Train logistic regression on concept vectors.
-    Returns fitted model, scaler, and accuracy.
-    """
-    print(f"\n[Probe] Training linear probe on {X.shape[0]} images, {X.shape[1]} concepts...")
-
+def train_linear_probe(X, y):
+    X_train, X_val, y_train, y_val = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y
+    )
+    
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-
+    X_train_scaled = scaler.fit_transform(X_train)
+    X_val_scaled   = scaler.transform(X_val)
+    
     clf = LogisticRegression(
         max_iter=1000,
-        C=0.1,            # regularization: prevents any single concept from dominating
+        C=0.1,
         solver="saga",
-        n_jobs=-1,
         random_state=42,
     )
-    clf.fit(X_scaled, y)
-
-    acc = clf.score(X_scaled, y)
-    print(f"[Probe] Training accuracy: {acc:.3f}")
-    return clf, scaler, acc
+    clf.fit(X_train_scaled, y_train)
+    
+    train_acc = clf.score(X_train_scaled, y_train)
+    val_acc   = clf.score(X_val_scaled, y_val)
+    
+    print(f"[Probe] Train accuracy: {train_acc:.3f}")
+    print(f"[Probe] Val accuracy:   {val_acc:.3f}")
+    print("\n[Probe] Per-class report (val):")
+    print(classification_report(y_val, clf.predict(X_val_scaled)))
+    
+    return clf, scaler, val_acc
 
 
 # ── Step 3: Extract discriminative concepts per class ─────────

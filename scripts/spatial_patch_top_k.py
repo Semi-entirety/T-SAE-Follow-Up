@@ -42,8 +42,9 @@ class SpatialPatchTopKTrainer:
 
         recon_loss = F.mse_loss(x0_hat, x0) + F.mse_loss(x1_hat, x1)
 
-        z0 = F.normalize(f0, dim=-1)
-        z1 = F.normalize(f1, dim=-1)
+        hl = f0.shape[-1] // 2
+        z0 = F.normalize(f0[:, :hl], dim=-1)
+        z1 = F.normalize(f1[:, :hl], dim=-1)
         logits = (z0 @ z1.T) / self.temperature
         labels = torch.arange(logits.size(0), device=logits.device)
         contrastive_loss = 0.5 * (
