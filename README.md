@@ -1,4 +1,4 @@
-# T-SAE Follow-Up: Spatial SAE Study
+# Spatial SAE Research
 
 Research code and final three-seed results for grouped Matryoshka sparse
 autoencoders (SAEs) trained on frozen DINOv2 patch representations. The
